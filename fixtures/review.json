@@ -1,0 +1,19 @@
+{
+  "brief_id": "review-landing-01",
+  "v1": "Deliver one landing page in desktop + mobile layouts. Two rounds of layout revisions are included. Final delivery is in English only.",
+  "message": "Please tighten the spacing on mobile and add a Japanese version.",
+  "amendment": "Japanese-language delivery is included alongside English for the same landing page.",
+  "expected_v1": [
+    "INCLUDED",
+    "CHANGE_ORDER"
+  ],
+  "expected_v2": [
+    "INCLUDED",
+    "INCLUDED"
+  ],
+  "vague_brief": "Deliver a responsive landing page. Two layout revisions are included. We support multiple languages.",
+  "expected_vague": [
+    "INCLUDED",
+    "NEEDS_CLARIFICATION"
+  ]
+}
