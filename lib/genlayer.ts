@@ -1,5 +1,6 @@
-/** Browser wallet writes + direct GenLayer Studionet reads; no private keys stored. */
-import {createClient,isSuccessful} from "genlayer-js";
+/** GenLayerJS stable v1.1.8: browser-wallet Studionet writes and public readbacks. */
+import {createClient} from "genlayer-js";
+import {ExecutionResult,TransactionStatus} from "genlayer-js/types";
 import {studionet} from "genlayer-js/chains";
 type Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>};
 function validate(address:string){if(!/^0x[a-fA-F0-9]{40}$/.test(address))throw Error("A deployed contract 0x address is required.");return address;}
@@ -15,11 +16,9 @@ export async function writeOnChain(address:string,method:string,args:(string|num
  const {account,provider}=await connectedWallet();
  const client=createClient({chain:studionet,account:account as never,provider});
  await client.connect("studionet");
- const request={address:validate(address) as never,functionName:method,args};
- const estimate=await client.estimateTransactionFeesForWrite(request);
- const hash=await client.writeContract({...request,fees:{distribution:estimate.distribution,feeValue:estimate.feeValue}});
- const receipt=await client.waitForFinalization({hash});
- if(!isSuccessful(receipt))throw Error("Consensus execution was not successful: "+receipt.statusName);
+ const hash=await client.writeContract({address:validate(address) as never,functionName:method,args,value:BigInt(0)});
+ const receipt=await client.waitForTransactionReceipt({hash,status:TransactionStatus.FINALIZED});
+ if(receipt.txExecutionResultName!==ExecutionResult.FINISHED_WITH_RETURN)throw Error("Finalized but execution not successful: "+receipt.txExecutionResultName);
  return hash;
 }
 export async function readOnChain(address:string,method:string,args:(string|number)[]){
