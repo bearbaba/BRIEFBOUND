@@ -7,6 +7,9 @@
 - Legacy/unknown fee policy blocks signing. Do not deploy the migration candidate until the new runner passes CI.
 - For manual Studio deployment, inspect the fee estimate in the Studio UI before approving. If unavailable, stop.
 
+- Current runner API: explicit imports, gl.contract.Contract, gl.vm.run_nondet and gl.contract.get_at. Linter 0.11.1rc2 and manager release v0.6.0-rc14 are pinned for this migration.
+- Reference: https://github.com/genlayerlabs/skills/blob/main/plugins/genlayer-dev/skills/write-contract/SKILL.md
+
 ## Before signing
 
 - The source release must pass frontend tests/typecheck/build, Python compile, GenVM lint/check and direct-mode regression tests.
