@@ -5,7 +5,7 @@
 ## Exactly two GenLayer Intelligent Contracts
 
 1. **contracts/ScopeAnchor.py** — A client proposes an original written brief. GenLayer extracts individually quoted clauses through LLM consensus with independent validator assessment. Client and freelancer must each approve to lock version 1. Amendments append to the source and require the same two signatures before version 2 becomes locked.
-2. **contracts/ChangeDesk.py** — Accepts a natural-language change message and calls the deployed ScopeAnchor **directly** to read the specific locked version. GenLayer proposes separately classified tasks as INCLUDED, CHANGE_ORDER or NEEDS_CLARIFICATION, with source quotations and independent validator review. Each decision record stores the original version and is immutable. A revision round is consumed only after the other signer confirms. Separate typed counters prevent round-ID collisions; consumed rounds remain across amendments, and ambiguous or exhausted round limits fail closed.
+2. **contracts/ChangeDesk.py** — Accepts a natural-language change message and calls the deployed ScopeAnchor **directly** to read the specific locked version. GenLayer proposes separately classified tasks as INCLUDED, CHANGE_ORDER or NEEDS_CLARIFICATION, with source quotations and independent validator review. Each decision record stores the original version and is immutable. A revision round is consumed only after the other signer confirms. Separate typed counters prevent round-ID collisions; consumed rounds remain across amendments, and ambiguous or exhausted round limits fail closed. New rounds require the current locked version. Historical decisions remain readable.
 
 All source and verdict information is publicly readable on-chain. Source statements are the signatories' assertions, not proof of legal obligations or a substitute for a signed contract.
 
@@ -37,7 +37,7 @@ The deterministic preview illustrates **expected behavior**, not the result of a
 
 Node 22+ recommended: **npm install**, **npm run dev**, **npm run test**, **npm run typecheck**, **npm run build**.
 
-Files: **app/page.tsx** contains the compact UI; **lib/demo.ts** is deliberately bounded deterministic reviewer logic; **lib/genlayer.ts** uses the consensus-aware GenLayerJS v0.6/legacy wallet client; **fixtures/review.json** contains editable steward cases; **tests/demo.test.ts** tests preview behavior; **.github/workflows/ci.yml** verifies TypeScript/build and Python syntax and pinned GenVM SDK validation.
+Files: **app/page.tsx** contains the compact UI; **lib/demo.ts** is deliberately bounded deterministic reviewer logic; **lib/genlayer.ts** uses the consensus-aware GenLayerJS v0.6/legacy wallet client; **fixtures/review.json** contains editable steward cases; **tests/demo.test.ts** tests preview behavior; **.github/workflows/ci.yml** verifies TypeScript/build and Python syntax, pinned GenVM SDK validation, and direct-mode regressions with mocked AI and external views.
 
 No database, API key, paid model or wallet custody is required for the local preview. GenLayer transactions may consume network test tokens. The contracts still require actual compatible GenVM deployment and real consensus tests.
 

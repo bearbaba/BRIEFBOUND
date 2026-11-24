@@ -13,6 +13,7 @@ LABELS = ("INCLUDED", "CHANGE_ORDER", "NEEDS_CLARIFICATION")
 class ScopeAnchorAPI:
     class View:
         def get_version(self, brief_id: str, version: int) -> str: ...
+        def get_latest_version(self, brief_id: str) -> int: ...
     class Write:
         pass
 
@@ -105,13 +106,21 @@ class ChangeDesk(gl.Contract):
 
     def __init__(self, anchor_address: str):
         self.anchor = Address(anchor_address)
+        if self.anchor.as_hex.lower() == "0x" + "0" * 40:
+            raise gl.vm.UserError("Anchor cannot be zero address")
+
+    @gl.public.view
+    def get_anchor_address(self) -> str:
+        return self.anchor.as_hex
 
     def _load(self, brief_id: str, version: int) -> dict:
         raw = ScopeAnchorAPI(self.anchor).view().get_version(brief_id, version)
         if not raw:
             raise gl.vm.UserError("Unknown anchor version")
         brief = json.loads(raw)
-        if not brief.get("locked"):
+        if brief.get("brief_id") != brief_id or brief.get("version") != version:
+            raise gl.vm.UserError("Anchor record identity mismatch")
+        if not brief.get("locked") or not brief.get("client_approved") or not brief.get("freelancer_approved"):
             raise gl.vm.UserError("The brief version is not signed by both parties")
         return brief
 
@@ -177,12 +186,17 @@ class ChangeDesk(gl.Contract):
     def get_decision(self, decision_id: str) -> str:
         return self.decisions.get(decision_id, "")
 
+    def _require_current_version(self, brief_id: str, version: int) -> None:
+        if ScopeAnchorAPI(self.anchor).view().get_latest_version(brief_id) != version:
+            raise gl.vm.UserError("Revision rounds require the current locked version")
+
     @gl.public.write
     def propose_round(self, round_id: str, brief_id: str, version: int) -> None:
         if not round_id or len(round_id) > 64 or ":" in round_id or self.rounds.get(round_id, ""):
             raise gl.vm.UserError("Invalid or duplicate round ID")
         brief = self._load(brief_id, version)
         sender = self._party(brief)
+        self._require_current_version(brief_id, version)
         if self._remaining(brief) <= 0:
             raise gl.vm.UserError("No verified revision round available")
         rec = {"round_id": round_id, "brief_id": brief_id, "version": version,
@@ -197,6 +211,7 @@ class ChangeDesk(gl.Contract):
         rec = json.loads(raw)
         brief = self._load(rec["brief_id"], rec["version"])
         sender = self._party(brief)
+        self._require_current_version(rec["brief_id"], rec["version"])
         if rec["started"] or sender == rec["proposed_by"]:
             raise gl.vm.UserError("Other signatory must confirm an unstarted round")
         # Separate typed storage; amendments do not silently reset consumed rounds.
