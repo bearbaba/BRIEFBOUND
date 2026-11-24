@@ -32,13 +32,3 @@ jobs:
       - name: Direct-mode contract regressions (mocked AI and cross-contract view)
         run: pytest -q tests/contracts/
 
-  studionet-dry-run:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Validate network, fee policy, and actual contract schemas without writes
-        run: python scripts/studionet_preflight.py

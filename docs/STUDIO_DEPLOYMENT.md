@@ -26,3 +26,7 @@
 6. Run a new test case with distinct client and freelancer test wallets. Create v1, approve twice, adjudicate v1, propose amendment, approve v2 twice, adjudicate the identical request with a fresh decision ID. Check both immutable decisions and quoted source evidence. Optional: propose and confirm a revision round with separate signers.
 
 Direct-mode mocked AI tests are not live consensus or real cross-contract execution evidence. The app distinguishes transaction finalization from receipt success and from contract state returned by a public view.
+
+## Hosted schema preflight
+
+GitHub-hosted runner requests to the Studio RPC returned HTTP 403 (even eth_chainId). This is an external network access limitation, not a contract validation pass or fail. Use the hosted application's fixed-source read-only `/api/contract-preflight` endpoint instead. CI verifies that both bundled source strings exactly match the deployable Python files. A schema pass does not execute constructors or establish live consensus. The CLI preflight script remains available for environments authorized to reach Studio RPC.
