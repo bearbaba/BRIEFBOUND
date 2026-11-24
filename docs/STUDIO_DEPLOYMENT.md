@@ -1,5 +1,12 @@
 # BRIEFBOUND — Studio deployment gate
 
+## Studio v0.123 migration (candidate)
+
+- Target: genlayer-js 2.0.0, genlayer-test 0.30.0 and the announced GenVM v0.4 runner.
+- Every deploy and write requires a fee estimate and explicit fee distribution; verify status, consensus and execution separately.
+- Legacy/unknown fee policy blocks signing. Do not deploy the migration candidate until the new runner passes CI.
+- For manual Studio deployment, inspect the fee estimate in the Studio UI before approving. If unavailable, stop.
+
 ## Before signing
 
 - The source release must pass frontend tests/typecheck/build, Python compile, GenVM lint/check and direct-mode regression tests.

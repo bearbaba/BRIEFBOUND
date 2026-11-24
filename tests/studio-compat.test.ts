@@ -4,7 +4,7 @@ import {assertStudioCompatible,confirmedFeeOptions,formatFeeInTestGen} from "../
 
 test("v0.6 upgraded Studionet selects fee-aware SDK only on verified chain",()=>{
  assert.equal(assertStudioCompatible({chainId:"0xf22f",studioLine:"v0.6"}),"v0.6");
- assert.equal(assertStudioCompatible({chainId:"0xf22f",studioLine:"legacy"}),"legacy");
+ assert.throws(()=>assertStudioCompatible({chainId:"0xf22f",studioLine:"legacy"}),/legacy/);
  assert.throws(()=>assertStudioCompatible({chainId:"0xf22f",studioLine:"unknown"}),/unknown/);
  assert.throws(()=>assertStudioCompatible({chainId:"0xf22e",studioLine:"v0.6"}),/61999/);
  assert.throws(()=>assertStudioCompatible({studioLine:"v0.6"}),/61999/);

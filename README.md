@@ -37,7 +37,7 @@ The deterministic preview illustrates **expected behavior**, not the result of a
 
 Node 22+ recommended: **npm install**, **npm run dev**, **npm run test**, **npm run typecheck**, **npm run build**.
 
-Files: **app/page.tsx** contains the compact UI; **lib/demo.ts** is deliberately bounded deterministic reviewer logic; **lib/genlayer.ts** uses the consensus-aware GenLayerJS v0.6/legacy wallet client; **fixtures/review.json** contains editable steward cases; **tests/demo.test.ts** tests preview behavior; **.github/workflows/ci.yml** verifies TypeScript/build and Python syntax, pinned GenVM SDK validation, and direct-mode regressions with mocked AI and external views.
+Files: **app/page.tsx** contains the compact UI; **lib/demo.ts** is deliberately bounded deterministic reviewer logic; **lib/genlayer.ts** uses the GenLayerJS 2.0.0 fee-aware v0.6 wallet client (migration candidate; no legacy writes); **fixtures/review.json** contains editable steward cases; **tests/demo.test.ts** tests preview behavior; **.github/workflows/ci.yml** verifies TypeScript/build and Python syntax, pinned GenVM SDK validation, and direct-mode regressions with mocked AI and external views.
 
 No database, API key, paid model or wallet custody is required for the local preview. GenLayer transactions may consume network test tokens. The contracts still require actual compatible GenVM deployment and real consensus tests.
 
