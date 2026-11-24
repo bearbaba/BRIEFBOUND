@@ -1,7 +1,7 @@
 /** Deterministic reviewer preview; it is NOT an AI or on-chain verdict. */
 export const SEED_BRIEF = "Deliver one landing page in desktop + mobile layouts. Two rounds of layout revisions are included. Final delivery is in English only.";
 export const SEED_MESSAGE = "Please tighten the spacing on mobile and add a Japanese version.";
-export const SEED_AMENDMENT = "Japanese-language delivery is included alongside English for the same landing page.";
+export const SEED_AMENDMENT = "Japanese-language delivery is included alongside English for the same landing page. This replaces the previous English-only restriction.";
 export const VAGUE_BRIEF = "Deliver a responsive landing page. Two layout revisions are included. We support multiple languages.";
 export type Verdict = "INCLUDED" | "CHANGE_ORDER" | "NEEDS_CLARIFICATION";
 export type Item = {task:string;verdict:Verdict;evidence:string;explanation:string};
