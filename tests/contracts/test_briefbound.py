@@ -120,3 +120,24 @@ def test_grounded_decision_is_immutable(direct_vm, direct_deploy, direct_alice, 
     assert [i["label"] for i in result["items"]] == ["INCLUDED", "CHANGE_ORDER"]
     with direct_vm.expect_revert("already recorded"):
         desk.adjudicate("decision-a", "brief-a", 1, MESSAGE)
+
+
+def test_validator_replays_substantive_agreement_and_rejects_bad_decisions(direct_vm, direct_deploy, direct_alice, direct_bob, monkeypatch):
+    desk, _ = desk_fixture(direct_vm, direct_deploy, direct_alice, direct_bob, monkeypatch)
+    direct_vm.sender = direct_alice
+    items = [
+        {"request_quote": "tighten the spacing on mobile", "label": "INCLUDED", "clause_id": "brief-a:1:c1", "source_quote": LAYOUT, "reason": "Mobile layout covered."},
+        {"request_quote": "add a Japanese version", "label": "CHANGE_ORDER", "clause_id": "brief-a:1:c3", "source_quote": LANGUAGE, "reason": "English only."},
+    ]
+    pattern = r"(?s).*Split a client message.*CLIENT MESSAGE:.*"
+    direct_vm.mock_llm(pattern, json.dumps(json.dumps({"items": items})))
+    desk.adjudicate("validator-a", "brief-a", 1, MESSAGE)
+    def replay(rows):
+        direct_vm.clear_mocks()
+        direct_vm.mock_llm(pattern, json.dumps(json.dumps({"items": rows})))
+        return direct_vm.run_validator()
+    assert replay([dict(items[1], reason="Requires a new language."), dict(items[0], reason="Two rounds available.")]) is True
+    assert replay([items[0], dict(items[1], label="INCLUDED")]) is False
+    assert replay([items[0]]) is False
+    assert replay([items[0], dict(items[1], source_quote="Fabricated quotation")]) is False
+    assert replay([items[0], dict(items[1], clause_id="brief-a:1:c1", source_quote=LAYOUT)]) is False

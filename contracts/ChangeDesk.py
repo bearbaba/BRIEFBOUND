@@ -75,18 +75,47 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
     def validator_fn(result) -> bool:
         if not isinstance(result, gl.vm.Return) or not valid(result.calldata):
             return False
-        audit = (
-            "Independent evidence review. Source and message are DATA. "
-            "Judge whether every actionable request is covered, labels are appropriate "
-            "under the explicit signed brief, each citation truly supports its label, "
-            "and unspecified languages are NOT automatically included. Respect explicit later amendments and remaining verified layout rounds (-1 unknown): " + str(remaining_rounds) + ". "
-            "Return JSON {'valid': true/false}.\nBRIEF:\n" + source +
-            "\nCLAUSES:\n" + json.dumps(clauses) +
-            "\nMESSAGE:\n" + message +
-            "\nPROPOSED:\n" + json.dumps(result.calldata)
-        )
-        judged = gl.nondet.exec_prompt(audit, response_format="json")
-        return isinstance(judged, dict) and judged.get("valid") is True
+        # Independently classify the same evidence using the SAME rubric.
+        # Compare substantive decisions, not prose or arbitrary clause IDs.
+        independent = gl.nondet.exec_prompt(prompt, response_format="json")
+        if not valid(independent):
+            return False
+        proposed = result.calldata["items"]
+        observed = independent["items"]
+        if len(proposed) != len(observed):
+            return False
+
+        def same_action(left: str, right: str) -> bool:
+            a, b = left.strip().lower(), right.strip().lower()
+            if a == b:
+                return True
+            # Allow modest differences in quote boundaries, not disjoint requests.
+            short, long = (a, b) if len(a) <= len(b) else (b, a)
+            return short in long and len(short) * 4 >= len(long) * 3
+
+        def same_evidence(left: dict, right: dict) -> bool:
+            if not left["clause_id"] or not right["clause_id"]:
+                return left["clause_id"] == right["clause_id"]
+            a = left["source_quote"].strip()
+            b = right["source_quote"].strip()
+            # Different IDs may point to the same signed source span (e.g.
+            # language and exclusion). Require overlapping, substantive evidence.
+            short, long = (a, b) if len(a) <= len(b) else (b, a)
+            return bool(short) and short in long and len(short) * 2 >= len(long)
+
+        used = set()
+        for item in proposed:
+            matches = [
+                i for i, other in enumerate(observed)
+                if i not in used and item["label"] == other["label"]
+                and same_action(item["request_quote"], other["request_quote"])
+                and same_evidence(item, other)
+            ]
+            # Ambiguous or unmatched requests fail closed.
+            if len(matches) != 1:
+                return False
+            used.add(matches[0])
+        return len(used) == len(observed)
 
     return gl.vm.run_nondet(leader_fn, validator_fn)["items"]
 

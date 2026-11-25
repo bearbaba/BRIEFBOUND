@@ -30,3 +30,7 @@ Direct-mode mocked AI tests are not live consensus or real cross-contract execut
 ## Hosted schema preflight
 
 GitHub-hosted runner requests to the Studio RPC returned HTTP 403 (even eth_chainId). This is an external network access limitation, not a contract validation pass or fail. Use the hosted application's fixed-source read-only `/api/contract-preflight` endpoint instead. CI verifies that both bundled source strings exactly match the deployable Python files. A schema pass does not execute constructors or establish live consensus. The CLI preflight script remains available for environments authorized to reach Studio RPC.
+
+## ChangeDesk consensus regression candidate
+
+The initial live adjudication and one controlled retry finalized without consensus. The new candidate independently reclassifies the same source and compares one-to-one request labels and supporting quote spans, rejecting omitted requests, changed labels, fabricated evidence and ambiguous matching. Validator replay is required before deployment. Keep the existing ScopeAnchor and locked brief; if the candidate passes, deploy a new ChangeDesk instance pointing at the existing anchor. Do not upgrade or overwrite the old instance. No live consensus result is claimed until a new signed test completes.
