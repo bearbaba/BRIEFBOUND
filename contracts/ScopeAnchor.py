@@ -1,10 +1,12 @@
-# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+# { "Depends": "py-genlayer:kzybg95x1gn21dw72m7hyg0maaap04n4nx55j9yt6fkdqxtz6bz0" }
 """BRIEFBOUND contract 1/2: versioned, two-party-approved design briefs.
 
 The LLM extracts candidate clauses; only the two signatories can lock them.
 Stored quotations are checked against the original brief before acceptance.
 """
-from genlayer import *
+import genlayer as gl
+from genlayer.types import Address, u32
+from genlayer.storage import TreeMap
 import json
 
 KINDS = ("deliverable", "layout", "rounds", "language", "exclusion", "other")
@@ -61,11 +63,11 @@ def extract_clauses(source: str) -> list[dict]:
         verdict = gl.nondet.exec_prompt(audit, response_format="json")
         return isinstance(verdict, dict) and verdict.get("valid") is True
 
-    result = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+    result = gl.vm.run_nondet(leader_fn, validator_fn)
     return result["clauses"]
 
 
-class ScopeAnchor(gl.Contract):
+class ScopeAnchor(gl.contract.Contract):
     # Each version is immutable after signatures; stored as compact JSON for easy calldata.
     versions: TreeMap[str, str]
     latest: TreeMap[str, u32]

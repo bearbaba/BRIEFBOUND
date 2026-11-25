@@ -1,21 +1,14 @@
-# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+# { "Depends": "py-genlayer:kzybg95x1gn21dw72m7hyg0maaap04n4nx55j9yt6fkdqxtz6bz0" }
 """BRIEFBOUND contract 2/2: immutable, source-grounded revision decisions.
 
 Reads a locked ScopeAnchor version on-chain. No caller can substitute clauses.
 """
-from genlayer import *
+import genlayer as gl
+from genlayer.types import Address, u32
+from genlayer.storage import TreeMap
 import json
 
 LABELS = ("INCLUDED", "CHANGE_ORDER", "NEEDS_CLARIFICATION")
-
-
-@gl.contract_interface
-class ScopeAnchorAPI:
-    class View:
-        def get_version(self, brief_id: str, version: int) -> str: ...
-        def get_latest_version(self, brief_id: str) -> int: ...
-    class Write:
-        pass
 
 
 def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
@@ -95,10 +88,10 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
         judged = gl.nondet.exec_prompt(audit, response_format="json")
         return isinstance(judged, dict) and judged.get("valid") is True
 
-    return gl.vm.run_nondet_unsafe(leader_fn, validator_fn)["items"]
+    return gl.vm.run_nondet(leader_fn, validator_fn)["items"]
 
 
-class ChangeDesk(gl.Contract):
+class ChangeDesk(gl.contract.Contract):
     anchor: Address
     decisions: TreeMap[str, str]
     rounds: TreeMap[str, str]
@@ -114,7 +107,7 @@ class ChangeDesk(gl.Contract):
         return self.anchor.as_hex
 
     def _load(self, brief_id: str, version: int) -> dict:
-        raw = ScopeAnchorAPI(self.anchor).view().get_version(brief_id, version)
+        raw = gl.contract.get_at(self.anchor).view().get_version(brief_id, version)
         if not raw:
             raise gl.vm.UserError("Unknown anchor version")
         brief = json.loads(raw)
@@ -187,7 +180,7 @@ class ChangeDesk(gl.Contract):
         return self.decisions.get(decision_id, "")
 
     def _require_current_version(self, brief_id: str, version: int) -> None:
-        if ScopeAnchorAPI(self.anchor).view().get_latest_version(brief_id) != version:
+        if gl.contract.get_at(self.anchor).view().get_latest_version(brief_id) != version:
             raise gl.vm.UserError("Revision rounds require the current locked version")
 
     @gl.public.write

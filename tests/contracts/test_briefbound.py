@@ -18,10 +18,10 @@ def clauses(amended=False):
 
 def setup_anchor(vm, deploy, alice, bob):
     anchor = deploy("contracts/ScopeAnchor.py")
-    from genlayer import Address
+    from genlayer.types import Address
     vm.sender = alice
-    vm.mock_llm(r"(?s).*Identify all material design-scope facts.*SOURCE:.*", json.dumps({"clauses": clauses()}))
-    vm.mock_llm(r"(?s).*You are an independent validator.*", '{"valid":true}')
+    vm.mock_llm(r"(?s).*Identify all material design-scope facts.*SOURCE:.*", json.dumps(json.dumps({"clauses": clauses()})))
+    vm.mock_llm(r"(?s).*You are an independent validator.*", json.dumps('{"valid":true}'))
     anchor.create_brief("brief-a", SOURCE, Address(alice).as_hex, Address(bob).as_hex)
     return anchor
 
@@ -64,7 +64,7 @@ def test_amendment_requires_two_fresh_signatures(direct_vm, direct_deploy, direc
 
 def desk_fixture(vm, deploy, alice, bob, monkeypatch):
     desk = deploy("contracts/ChangeDesk.py", "0x" + "9" * 40)
-    from genlayer import Address
+    from genlayer.types import Address
     records = {}
     for v in (1, 2):
         rows = clauses(v == 2)
@@ -77,7 +77,7 @@ def desk_fixture(vm, deploy, alice, bob, monkeypatch):
     monkeypatch.setattr(type(desk._instance), "_load", lambda self, brief_id, version: records[version])
     current = [1]
     def require_current(self, brief_id, version):
-        from genlayer import gl
+        import genlayer as gl
         if version != current[0]:
             raise gl.vm.UserError("Revision rounds require the current locked version")
     monkeypatch.setattr(type(desk._instance), "_require_current_version", require_current)
@@ -112,8 +112,8 @@ def test_grounded_decision_is_immutable(direct_vm, direct_deploy, direct_alice, 
     direct_vm.sender = direct_alice
     items = [{"request_quote": "tighten the spacing on mobile", "label": "INCLUDED", "clause_id": "brief-a:1:c1", "source_quote": LAYOUT, "reason": "Mobile layout covered."},
              {"request_quote": "add a Japanese version", "label": "CHANGE_ORDER", "clause_id": "brief-a:1:c3", "source_quote": LANGUAGE, "reason": "English only."}]
-    direct_vm.mock_llm(r"(?s).*Split a client message.*CLIENT MESSAGE:.*", json.dumps({"items": items}))
-    direct_vm.mock_llm(r"(?s).*Independent evidence review.*", '{"valid":true}')
+    direct_vm.mock_llm(r"(?s).*Split a client message.*CLIENT MESSAGE:.*", json.dumps(json.dumps({"items": items})))
+    direct_vm.mock_llm(r"(?s).*Independent evidence review.*", json.dumps('{"valid":true}'))
     desk.adjudicate("decision-a", "brief-a", 1, MESSAGE)
     result = json.loads(desk.get_decision("decision-a"))
     assert result["remaining_rounds_at_decision"] == 2

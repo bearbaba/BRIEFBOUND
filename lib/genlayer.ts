@@ -1,9 +1,7 @@
-/** Stable GenLayerJS v1.1.8 testnet wallet interface. */
+/** Studio v0.123 / Consensus v0.6: every write uses an explicit fee quote. */
 import {createClient} from "genlayer-js";
 import {ExecutionResult,TransactionStatus} from "genlayer-js/types";
 import {studionet} from "genlayer-js/chains";
-import {createClient as createV06Client} from "genlayer-js-v2";
-import {studionet as studionetV06} from "genlayer-js-v2/chains";
 import {assertStudioCompatible,confirmedFeeOptions,formatFeeInTestGen,type StudioLine} from "./studio-compat";
 export type Provider={
  request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;
@@ -47,10 +45,8 @@ export async function connectWallet():Promise<WalletSession>{
  if(!provider)throw Error("No browser wallet detected. Install/unlock a compatible wallet, then reload the page.");
  const account=firstAccount(await provider.request({method:"eth_requestAccounts"}));
  if(!account)throw Error("Wallet connection was not approved.");
- const line=await checkStudioCompatibility();
- const client=line==="v0.6"?
-  createV06Client({chain:studionetV06,account:account as never,provider}):
-  createClient({chain:studionet,account:account as never,provider});
+ await checkStudioCompatibility();
+ const client=createClient({chain:studionet,account:account as never,provider});
  await client.connect("studionet");
  const session=await getWalletSession();
  if(!session)throw Error("Wallet disconnected during network selection.");
@@ -76,36 +72,23 @@ export async function submitWrite(target:string,method:string,args:(string|numbe
  if(!session)throw Error("Connect Wallet before submitting a transaction.");
  if(!isExpectedSigner(session.account,expectedSigner))throw Error("Wrong wallet: switch to "+expectedSigner+" before signing "+method+".");
  if(!isStudionetChain(session.chainId))throw Error("Switch wallet to GenLayer Studionet (chain 61999) before signing.");
- const line=await checkStudioCompatibility();
+ await checkStudioCompatibility();
  const sender=address(session.account);
- if(line==="v0.6"){
-  const client=createV06Client({chain:studionetV06,account:sender as never,provider});
-  await client.connect("studionet");
-  const current=await getWalletSession();
-  if(!current||!isExpectedSigner(current.account,expectedSigner)||current.account.toLowerCase()!==session.account.toLowerCase())
-   throw Error("Wallet account changed before signing. Reconnect and review the signer.");
-  if(!isStudionetChain(current.chainId))throw Error("GenLayer Studionet is not selected.");
-  const call={address:address(target) as `0x${string}`,functionName:method,args,value:BigInt(0)};
-  const quote=await client.estimateTransactionFeesForWrite(call);
-  const fees=confirmedFeeOptions(quote);
-  // A fee quote can take several seconds. Ensure the signer did not change meanwhile.
-  const stillCurrent=await getWalletSession();
-  if(!stillCurrent||!isStudionetChain(stillCurrent.chainId)||
-    !isExpectedSigner(stillCurrent.account,expectedSigner)||
-    stillCurrent.account.toLowerCase()!==sender.toLowerCase()){
-   throw Error("Wallet changed during fee estimation. No transaction was submitted.");
-  }
-  onFeeEstimate?.(formatFeeInTestGen(fees.feeValue));
-  return client.writeContract({...call,fees});
- }
  const client=createClient({chain:studionet,account:sender as never,provider});
  await client.connect("studionet");
  const current=await getWalletSession();
- if(!current||!isExpectedSigner(current.account,expectedSigner)||current.account.toLowerCase()!==session.account.toLowerCase())
-  throw Error("Wallet account changed before signing. Reconnect and review the signer.");
- if(!isStudionetChain(current.chainId))throw Error("GenLayer Studionet is not selected.");
- return client.writeContract({address:address(target) as never,functionName:method,args,value:BigInt(0)});
+ if(!current||!isExpectedSigner(current.account,expectedSigner)||current.account.toLowerCase()!==sender.toLowerCase()||!isStudionetChain(current.chainId))
+  throw Error("Wallet changed before fee estimation. Reconnect and review the signer.");
+ const call={address:address(target) as `0x${string}`,functionName:method,args,value:BigInt(0)};
+ const quote=await client.estimateTransactionFeesForWrite(call);
+ const fees=confirmedFeeOptions(quote);
+ const stillCurrent=await getWalletSession();
+ if(!stillCurrent||!isStudionetChain(stillCurrent.chainId)||!isExpectedSigner(stillCurrent.account,expectedSigner)||stillCurrent.account.toLowerCase()!==sender.toLowerCase())
+  throw Error("Wallet changed during fee estimation. No transaction was submitted.");
+ onFeeEstimate?.(formatFeeInTestGen(fees.feeValue));
+ return client.writeContract({...call,fees});
 }
+
 /** Backwards-compatible blocking helper; live UI uses submitWrite + status polling. */
 export async function signWrite(target:string,method:string,args:(string|number)[],expectedSigner?:string){
  const hash=await submitWrite(target,method,args,expectedSigner);
