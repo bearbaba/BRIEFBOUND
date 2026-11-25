@@ -11,17 +11,6 @@ import json
 LABELS = ("INCLUDED", "CHANGE_ORDER", "NEEDS_CLARIFICATION")
 
 
-def prompt_json(prompt: str):
-    """Bounded recovery for malformed provider JSON; never accept missing evidence."""
-    for attempt in range(2):
-        try:
-            suffix = "" if attempt == 0 else "\nRETRY: Return only a valid JSON object, no markdown or prose."
-            return gl.nondet.exec_prompt(prompt + suffix, response_format="json")
-        except gl.nondet.NondetException:
-            pass
-    return None
-
-
 def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
     clauses = brief["clauses"]
     by_id = {c["clause_id"]: c for c in clauses}
@@ -79,10 +68,7 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
                 return False
         return True
 
-    def candidate():
-        obj = prompt_json(prompt)
-        if not valid(obj):
-            return None
+    def canonical(obj):
         # Ignore surplus keys; never store model-authored evidence or reasons.
         return {"items": [
             {k: item[k] for k in ("request_quote", "label", "clause_id", "requires_round")}
@@ -90,10 +76,15 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
         ]}
 
     def leader_fn():
-        obj = candidate()
-        if obj is None:
-            raise gl.vm.UserError("Classification missing grounded request/brief evidence")
-        return obj
+        for attempt in range(2):
+            try:
+                suffix = "" if attempt == 0 else "\nRETRY: Return only valid JSON, no markdown or prose."
+                obj = gl.nondet.exec_prompt(prompt + suffix, response_format="json")
+                if valid(obj):
+                    return canonical(obj)
+            except gl.nondet.NondetException:
+                pass
+        raise gl.vm.UserError("Classification missing grounded request/brief evidence")
 
     def action_key(text: str) -> str:
         # Ignore only punctuation and courtesy prefix, never arbitrary substrings.
@@ -111,7 +102,16 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
     def validator_fn(result) -> bool:
         if not isinstance(result, gl.vm.Return) or not valid(result.calldata):
             return False
-        observed = candidate()
+        observed = None
+        for attempt in range(2):
+            try:
+                suffix = "" if attempt == 0 else "\nRETRY: Return only valid JSON, no markdown or prose."
+                obj = gl.nondet.exec_prompt(prompt + suffix, response_format="json")
+                if valid(obj):
+                    observed = canonical(obj)
+                    break
+            except gl.nondet.NondetException:
+                pass
         if observed is None:
             return False
         proposed = [key(i) for i in result.calldata["items"]]
