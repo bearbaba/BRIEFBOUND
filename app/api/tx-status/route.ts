@@ -114,7 +114,7 @@ export async function GET(request:NextRequest){
    try{
     // SDK read-only compatibility path; no wallet, signing or write.
     const reader=createClient({chain:studionet});
-    const tx=await Promise.race([reader.getTransaction({hash:hash as `0x${string}`}),new Promise<never>((_,reject)=>setTimeout(()=>reject(Error("SDK read timed out")),5000))]);
+    const tx=await Promise.race([reader.getTransaction({hash:hash as `0x${string}` & {length:66}}),new Promise<never>((_,reject)=>setTimeout(()=>reject(Error("SDK read timed out")),5000))]);
     rawReceipt=studioProtocolReceipt(hash,tx);
     if(rawReceipt!==null)receiptSource="GenLayerJS protocol transaction";
    }catch{}
@@ -126,7 +126,7 @@ export async function GET(request:NextRequest){
  const normalized=normalizeSnapshot(hash,rawStatus,rawReceipt);
  const receiptUnsupported=rawReceipt===null&&/method not found/i.test(dataError)&&/method not found/i.test(receiptError);
  const message=normalized.finalized&&receiptUnsupported?
-  "FINALIZED on Studionet. This RPC does not expose the detailed receipt. Verify the contract readback and Explorer before proceeding.":
+  "FINALIZED on Studionet. This RPC does not expose the detailed receipt. Detailed consensus receipt is unavailable from this RPC; contract state is checked separately.":
   normalized.message;
  return NextResponse.json({...normalized,message,
   receiptAvailable:rawReceipt!==null,receiptUnsupported,receiptSource:receiptSource||null,
