@@ -48,3 +48,13 @@ export function normalizeSnapshot(hash:string,rawStatus:unknown,rawReceipt:unkno
   "Transaction is "+statusName+"; checking until finalization.";
  return {hash,statusCode,status:statusName,consensus:consensus||null,execution:execution||null,finalized,verified,terminalFailure,message};
 }
+
+/** Studio's eth_getTransactionByHash may expose a full protocol record. Never treat an EVM-only receipt as consensus. */
+export function studioProtocolReceipt(hash:string,value:unknown):Record<string,unknown>|null{
+ const r=object(value);if(!r)return null;
+ const id=label(r.hash)||label(r.tx_id)||label(r.txId)||label(r.id);
+ if(id.toLowerCase()!==hash.toLowerCase())return null;
+ if(code(r.result)===null&&!label(r.resultName)&&!label(r.result_name))return null;
+ if(code(r.txExecutionResult)===null&&!label(r.txExecutionResultName))return null;
+ return r;
+}
