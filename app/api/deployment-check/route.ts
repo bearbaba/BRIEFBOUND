@@ -25,7 +25,7 @@ async function inspect(name:keyof typeof sources,address:string){
   if(/^[A-Za-z0-9+/=]+$/.test(raw))candidates.push(Buffer.from(raw,"base64").toString("utf8"));
   const exact=candidates.find(s=>s===sources[name]);
   const normalized=candidates.find(s=>s.replace(/\r\n/g,"\n").trimEnd()===sources[name].replace(/\r\n/g,"\n").trimEnd());
-  const expected=name==="ScopeAnchor"?["create_brief","approve_version","get_version"]:["adjudicate","get_decision","get_anchor_address"];
+  const expected=name==="ScopeAnchor"?["create_brief","approve_version","get_version","get_active_version","get_protocol_version","cancel_amendment"]:["adjudicate","get_decision","get_anchor_address"];
   const abi=typeof schema==="string"?schema:JSON.stringify(schema);
   const schemaOk=expected.every(m=>abi.includes('"'+m+'"'));
   return {name,address,codeReadable:!!raw&&raw!=="0x",sourceMatch:!!exact,normalizedSourceMatch:!!normalized,schemaOk,expectedSha256:createHash("sha256").update(sources[name]).digest("hex"),observedRunner:candidates.find(s=>s.includes("py-genlayer:"))?.match(/py-genlayer:[a-z0-9]+/)?.[0]||null};

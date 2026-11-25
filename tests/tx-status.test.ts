@@ -43,3 +43,12 @@ test("missing status fields must not produce NaN or fabricated consensus",()=>{
  assert.equal(s.verified,false);
  assert.equal(s.terminalFailure,false);
 });
+
+test("actual Studio snake_case receipt and majority disagreement",()=>{
+ const s=normalizeSnapshot(HASH,{status:"FINALIZED",statusCode:7},{result:2,result_name:"MAJORITY_DISAGREE",txExecutionResult:1,txExecutionResultName:"FINISHED_WITH_RETURN"});
+ assert.equal(s.verified,false);assert.equal(s.terminalFailure,true);assert.equal(s.consensus,"MAJORITY_DISAGREE");
+});
+test("conflicting numeric and named receipt fields fail closed",()=>{
+ const s=normalizeSnapshot(HASH,{status:"FINALIZED",statusCode:7},{result:2,result_name:"MAJORITY_AGREE",txExecutionResult:1,txExecutionResultName:"FINISHED_WITH_RETURN"});
+ assert.equal(s.verified,false);assert.equal(s.terminalFailure,true);
+});

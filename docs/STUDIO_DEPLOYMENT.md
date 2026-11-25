@@ -30,3 +30,15 @@ Direct-mode mocked AI tests are not live consensus or real cross-contract execut
 ## Hosted schema preflight
 
 GitHub-hosted runner requests to the Studio RPC returned HTTP 403 (even eth_chainId). This is an external network access limitation, not a contract validation pass or fail. Use the hosted application's fixed-source read-only `/api/contract-preflight` endpoint instead. CI verifies that both bundled source strings exactly match the deployable Python files. A schema pass does not execute constructors or establish live consensus. The CLI preflight script remains available for environments authorized to reach Studio RPC.
+
+## ChangeDesk consensus regression candidate
+
+The initial live adjudication and one controlled retry finalized without consensus. The new candidate independently reclassifies the same source and compares one-to-one request labels and supporting quote spans, rejecting omitted requests, changed labels, fabricated evidence and ambiguous matching. Validator replay is required before deployment. Keep the existing ScopeAnchor and locked brief; if the candidate passes, deploy a new ChangeDesk instance pointing at the existing anchor. Do not upgrade or overwrite the old instance. No live consensus result is claimed until a new signed test completes.
+
+## Amendment reliability candidate
+
+Two live amendment calls failed: one majority disagreement and one provider JSON decoding exception. Preserve all approved historical clauses; extract only the proposed amendment, track introduced_in, and require two fresh signatures. Both contracts retry malformed provider JSON once, then fail closed. Existing conflicting round counts remain conservatively unknown. The candidate requires fresh deployment of both contracts if in-place upgrade cannot be independently established as safe; old addresses and their evidence must be retained. No live success claimed.
+
+## Snapshot-v3 audit candidate (supersedes earlier candidates)
+
+Anchor writes are deterministic: exact sentence/line spans, bounded explicit layout-round grammar, immutable full replacement snapshots, distinct signers, cancellable pending amendments, and separate active/latest pointers. ChangeDesk performs independent AI classification of the exact effective signed snapshot and compares normalized action, decision, exact signed clause, and revision flag. The contract derives citations and reasons itself. This deliberately changes amendment input semantics: provide the entire replacement source, not a delta. The new contract pair requires fresh deployment; retain the old pair and historical receipts. Do not deploy until all regression tests and schema preflight pass. Actual AI consensus is not guaranteed. No release has been made.
