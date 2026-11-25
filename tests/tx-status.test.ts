@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {isTransactionHash,normalizeSnapshot} from "../lib/tx-status.ts";
+import {isTransactionHash,normalizeSnapshot,studioProtocolReceipt} from "../lib/tx-status.ts";
 const HASH="0xc89b26b53deffcb952109cd683f531b388212404fdd8b9dd8a8cec78129385da";
 test("accept only complete 32-byte GenLayer transaction hashes",()=>{
  assert.equal(isTransactionHash(HASH),true);
@@ -51,4 +51,13 @@ test("actual Studio snake_case receipt and majority disagreement",()=>{
 test("conflicting numeric and named receipt fields fail closed",()=>{
  const s=normalizeSnapshot(HASH,{status:"FINALIZED",statusCode:7},{result:2,result_name:"MAJORITY_AGREE",txExecutionResult:1,txExecutionResultName:"FINISHED_WITH_RETURN"});
  assert.equal(s.verified,false);assert.equal(s.terminalFailure,true);
+});
+
+test("Studio fallback accepts only matching protocol records with explicit outcomes",()=>{
+ const r={hash:HASH,result:1,result_name:"MAJORITY_AGREE",txExecutionResult:1,txExecutionResultName:"FINISHED_WITH_RETURN"};
+ assert.equal(studioProtocolReceipt(HASH,r),r);
+ assert.equal(studioProtocolReceipt(HASH,{...r,hash:"0x"+"0".repeat(64)}),null);
+ assert.equal(studioProtocolReceipt(HASH,{hash:HASH,status:"0x1"}),null);
+ assert.equal(normalizeSnapshot(HASH,{statusCode:7,status:"FINALIZED"},studioProtocolReceipt(HASH,r)).verified,true);
+ assert.equal(normalizeSnapshot(HASH,{statusCode:7,status:"FINALIZED"},studioProtocolReceipt(HASH,{...r,result:2,result_name:"MAJORITY_DISAGREE"})).verified,false);
 });

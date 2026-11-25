@@ -1,5 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
-import {isTransactionHash,normalizeSnapshot} from "../../../lib/tx-status";
+import {createClient} from "genlayer-js";
+import {studionet} from "genlayer-js/chains";
+import {isTransactionHash,normalizeSnapshot,studioProtocolReceipt} from "../../../lib/tx-status";
 
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -67,7 +69,7 @@ export async function GET(request:NextRequest){
  }
 
  let rawStatus:unknown=null,rawReceipt:unknown=null;
- let statusError="",receiptError="",dataError="";
+ let statusError="",receiptError="",dataError="",receiptSource="";
  try{rawStatus=await rpc("gen_getTransactionStatus",hash);}
  catch(error){statusError=error instanceof Error?error.message:String(error);}
  // Some Studio nodes respond with "Transaction <hash> not found" before indexing.
@@ -97,22 +99,36 @@ export async function GET(request:NextRequest){
   ["accepted","undetermined","finalized","canceled"].includes(String(status?.status||"").toLowerCase());
  if(checkReceipt){
   // Newer GenLayer nodes expose getTransactionData; older ones may only serve Receipt.
-  try{rawReceipt=await rpc("gen_getTransactionData",hash);}
+  try{rawReceipt=await rpc("gen_getTransactionData",hash);if(rawReceipt!==null)receiptSource="gen_getTransactionData";}
   catch(error){dataError=error instanceof Error?error.message:String(error);}
   if(rawReceipt===null){
-   try{rawReceipt=await rpc("gen_getTransactionReceipt",hash);}
+   try{rawReceipt=await rpc("gen_getTransactionReceipt",hash);if(rawReceipt!==null)receiptSource="gen_getTransactionReceipt";}
    catch(error){receiptError=error instanceof Error?error.message:String(error);}
+  }
+  if(rawReceipt===null){
+   const legacy=await probeRpc("eth_getTransactionByHash",[hash]);
+   rawReceipt=studioProtocolReceipt(hash,legacy.result);
+   if(rawReceipt!==null)receiptSource="Studio protocol transaction record";
+  }
+  if(rawReceipt===null){
+   try{
+    // SDK read-only compatibility path; no wallet, signing or write.
+    const reader=createClient({chain:studionet});
+    const tx=await Promise.race([reader.getTransaction({hash:hash as `0x${string}`}),new Promise<never>((_,reject)=>setTimeout(()=>reject(Error("SDK read timed out")),5000))]);
+    rawReceipt=studioProtocolReceipt(hash,tx);
+    if(rawReceipt!==null)receiptSource="GenLayerJS protocol transaction";
+   }catch{}
   }
  }
  if(rawStatus===null&&rawReceipt===null){
   return NextResponse.json({error:"GenLayer RPC currently cannot read the transaction status."},{status:502,headers:noCache});
  }
  const normalized=normalizeSnapshot(hash,rawStatus,rawReceipt);
- const receiptUnsupported=/method not found/i.test(dataError)&&/method not found/i.test(receiptError);
+ const receiptUnsupported=rawReceipt===null&&/method not found/i.test(dataError)&&/method not found/i.test(receiptError);
  const message=normalized.finalized&&receiptUnsupported?
   "FINALIZED on Studionet. This RPC does not expose the detailed receipt. Verify the contract readback and Explorer before proceeding.":
   normalized.message;
  return NextResponse.json({...normalized,message,
-  receiptAvailable:rawReceipt!==null,receiptUnsupported,
+  receiptAvailable:rawReceipt!==null,receiptUnsupported,receiptSource:receiptSource||null,
   network:"GenLayer Studionet",checkedAt:new Date().toISOString()},{headers:noCache});
 }
