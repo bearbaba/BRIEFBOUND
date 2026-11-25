@@ -23,7 +23,7 @@ The deterministic preview illustrates **expected behavior**, not the result of a
 
 ## How to verify on GenLayer
 
-**Deployment is not claimed or verified by this repository.** The project ships deployable-intent Python sources, not fabricated addresses.
+**Snapshot v3 is deployed and exercised on Studionet.** See the dated [live evidence](docs/studionet-v3-evidence.md) for the actual contract pair, transaction hashes and readbacks. The following steps reproduce the workflow with a new brief and decision IDs.
 
 1. Deploy ScopeAnchor (no constructor arguments). Then deploy ChangeDesk passing the actual ScopeAnchor address as constructor argument.
 2. Set **NEXT_PUBLIC_SCOPE_ANCHOR_ADDRESS** and **NEXT_PUBLIC_CHANGE_DESK_ADDRESS** in Vercel. Public addresses only. Never enter any private key into an environment file.
@@ -37,9 +37,9 @@ The deterministic preview illustrates **expected behavior**, not the result of a
 
 Node 22+ recommended: **npm install**, **npm run dev**, **npm run test**, **npm run typecheck**, **npm run build**.
 
-Files: **app/page.tsx** contains the compact UI; **lib/demo.ts** is deliberately bounded deterministic reviewer logic; **lib/genlayer.ts** uses the GenLayerJS 2.0.0 fee-aware v0.6 wallet client (migration candidate; no legacy writes); **fixtures/review.json** contains editable steward cases; **tests/demo.test.ts** tests preview behavior; **.github/workflows/ci.yml** verifies TypeScript/build and Python syntax, pinned GenVM SDK validation, and direct-mode regressions with mocked AI and external views.
+Files: **app/page.tsx** contains the compact UI; **lib/demo.ts** is deliberately bounded deterministic reviewer logic; **lib/genlayer.ts** uses the GenLayerJS 2.0.0 fee-aware v0.6 wallet client (no legacy writes); **fixtures/review.json** contains editable steward cases; **tests/demo.test.ts** tests preview behavior; **.github/workflows/ci.yml** verifies TypeScript/build and Python syntax, pinned GenVM SDK validation, and direct-mode regressions with mocked AI and external views.
 
-No database, API key, paid model or wallet custody is required for the local preview. GenLayer transactions may consume network test tokens. The contracts still require actual compatible GenVM deployment and real consensus tests.
+No database, API key, paid model or wallet custody is required for the local preview. GenLayer transactions may consume network test tokens. The documented Studionet scenario passed real consensus and readback; other inputs may differ.
 
 ## Scope and caveats
 
@@ -47,6 +47,6 @@ No database, API key, paid model or wallet custody is required for the local pre
 - Decisions are immutable; a change must use a new ID and may reference a different signed brief version.
 - No automatic legal conclusion: ambiguous entitlement should receive NEEDS_CLARIFICATION.
 - Content is untrusted data, not executable instruction. Validator quality and transaction finality must be tested on the target network.
-- **Unverified:** contract addresses, cross-contract GenVM execution, finalization receipts and post-deployment E2E tests. Do not describe the source-only state as production-ready.
+- **Limits:** the dated evidence covers the documented scenario on Studionet, not an external audit or exhaustive adversarial live testing. The web UI must independently verify deployment/source compatibility before signing.
 
 Official documentation: https://docs.genlayer.com/developers/intelligent-contracts/examples/snippets
