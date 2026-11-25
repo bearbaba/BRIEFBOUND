@@ -51,11 +51,19 @@ def test_amendment_requires_two_fresh_signatures(direct_vm, direct_deploy, direc
     direct_vm.sender = direct_bob
     anchor.approve_version("brief-a", 1)
     v1 = anchor.get_version("brief-a", 1)
-    # The earlier mock may match the amended source; either valid quoted extraction still
-    # permits verification of immutable source and approval state.
+    direct_vm.clear_mocks()
+    direct_vm.mock_llm(r"(?s).*Extract ONLY this new amendment.*SOURCE:.*", json.dumps(json.dumps({"clauses": [{"kind": "language", "quote": AMENDMENT, "meaning": "Japanese alongside English; replaces English-only"}]})))
+    direct_vm.mock_llm(r"(?s).*You are an independent validator.*", json.dumps('{"valid":true}'))
     anchor.propose_amendment("brief-a", AMENDMENT)
     v2 = json.loads(anchor.get_version("brief-a", 2))
     assert AMENDMENT in v2["source"] and v2["source"].startswith(SOURCE)
+    old = json.loads(v1)["clauses"]
+    assert len(v2["clauses"]) == len(old) + 1
+    for prior, retained in zip(old, v2["clauses"]):
+        assert prior["quote"] == retained["quote"] and prior["meaning"] == retained["meaning"]
+        assert retained["introduced_in"] == 1
+    assert v2["clauses"][-1]["introduced_in"] == 2
+    assert v2["clauses"][-1]["quote"] == AMENDMENT
     assert not v2["locked"] and not v2["client_approved"] and not v2["freelancer_approved"]
     anchor.approve_version("brief-a", 2)
     direct_vm.sender = direct_alice
@@ -143,3 +151,30 @@ def test_validator_replays_substantive_agreement_and_rejects_bad_decisions(direc
     assert replay([items[0]]) is False
     assert replay([items[0], dict(items[1], source_quote="Fabricated quotation")]) is False
     assert replay([items[0], dict(items[1], clause_id="brief-a:1:c1", source_quote=LAYOUT)]) is False
+
+
+def test_invalid_provider_json_fails_closed(direct_vm, direct_deploy, direct_alice, direct_bob):
+    from genlayer.types import Address
+    anchor = direct_deploy("contracts/ScopeAnchor.py")
+    direct_vm.sender = direct_alice
+    direct_vm.mock_llm(r"(?s).*Identify all material design-scope facts.*SOURCE:.*", json.dumps("not JSON"))
+    with direct_vm.expect_revert("Extracted clauses lack exact source evidence"):
+        anchor.create_brief("bad-json", SOURCE, Address(direct_alice).as_hex, Address(direct_bob).as_hex)
+    assert anchor.get_latest_version("bad-json") == 0
+
+def test_amendment_decision_changes_only_language(direct_vm, direct_deploy, direct_alice, direct_bob, monkeypatch):
+    desk, _ = desk_fixture(direct_vm, direct_deploy, direct_alice, direct_bob, monkeypatch)
+    direct_vm.sender = direct_alice
+    items = [
+        {"request_quote": "tighten the spacing on mobile", "label": "INCLUDED", "clause_id": "brief-a:2:c1", "source_quote": LAYOUT, "reason": "Mobile covered."},
+        {"request_quote": "add a Japanese version", "label": "INCLUDED", "clause_id": "brief-a:2:c5", "source_quote": AMENDMENT, "reason": "Signed amendment includes Japanese."},
+    ]
+    pattern = r"(?s).*Split a client message.*CLIENT MESSAGE:.*"
+    direct_vm.mock_llm(pattern, json.dumps(json.dumps({"items": items})))
+    desk.adjudicate("amended-decision", "brief-a", 2, MESSAGE)
+    assert direct_vm.run_validator() is True
+    decision = json.loads(desk.get_decision("amended-decision"))
+    assert [i["label"] for i in decision["items"]] == ["INCLUDED", "INCLUDED"]
+    direct_vm.clear_mocks()
+    direct_vm.mock_llm(pattern, json.dumps(json.dumps({"items": [items[0], dict(items[1], label="CHANGE_ORDER", clause_id="brief-a:2:c3", source_quote=LANGUAGE)]})))
+    assert direct_vm.run_validator() is False

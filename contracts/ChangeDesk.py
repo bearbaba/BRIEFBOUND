@@ -11,6 +11,17 @@ import json
 LABELS = ("INCLUDED", "CHANGE_ORDER", "NEEDS_CLARIFICATION")
 
 
+def prompt_json(prompt: str):
+    """Bounded recovery for malformed provider JSON; never accept missing evidence."""
+    for attempt in range(2):
+        try:
+            suffix = "" if attempt == 0 else "\nRETRY: Return only a valid JSON object, no markdown or prose."
+            return gl.nondet.exec_prompt(prompt + suffix, response_format="json")
+        except gl.nondet.NondetException:
+            pass
+    return None
+
+
 def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
     clauses = brief["clauses"]
     source = brief["source"]
@@ -23,7 +34,7 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
         "language when the brief specifies English-only; NEEDS_CLARIFICATION if scope "
         "is vague (e.g. supports multiple languages without naming which). "
         "A request for layout adjustment is INCLUDED under a mobile layout clause "
-        "when no further exclusion is stated and verified rounds remain. If the round limit is unknown, use NEEDS_CLARIFICATION for revisions. If exhausted, use CHANGE_ORDER with the round clause. Later explicitly conflicting signed amendments supersede earlier terms. Do not bundle a new language with a layout fix.\n"
+        "when no further exclusion is stated and verified rounds remain. If the round limit is unknown, use NEEDS_CLARIFICATION for revisions. If exhausted, use CHANGE_ORDER with the round clause. Later explicitly conflicting signed amendments supersede earlier terms. Historical clauses are retained as evidence; introduced_in indicates their original version. Cite the newer effective clause for a changed term; unchanged clauses remain effective. Do not bundle a new language with a layout fix.\n"
         "Return JSON {'items': [{"
         "'request_quote': exact substring of message, "
         "'label': INCLUDED/CHANGE_ORDER/NEEDS_CLARIFICATION, "
@@ -67,7 +78,7 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
         return True
 
     def leader_fn():
-        result = gl.nondet.exec_prompt(prompt, response_format="json")
+        result = prompt_json(prompt)
         if not valid(result):
             raise gl.vm.UserError("Classification missing grounded request/brief evidence")
         return result
@@ -77,7 +88,7 @@ def classify(message: str, brief: dict, remaining_rounds: int) -> list[dict]:
             return False
         # Independently classify the same evidence using the SAME rubric.
         # Compare substantive decisions, not prose or arbitrary clause IDs.
-        independent = gl.nondet.exec_prompt(prompt, response_format="json")
+        independent = prompt_json(prompt)
         if not valid(independent):
             return False
         proposed = result.calldata["items"]
