@@ -11,7 +11,8 @@ MESSAGE = "Please tighten the spacing on mobile and add a Japanese version."
 def clauses(amended=False):
     rows = [{"kind": "layout", "quote": LAYOUT, "meaning": "Desktop and mobile layout"},
             {"kind": "rounds", "quote": ROUNDS, "meaning": "Two rounds included"},
-            {"kind": "language", "quote": LANGUAGE, "meaning": "English only"}]
+            {"kind": "language", "quote": LANGUAGE, "meaning": "English only"},
+            {"kind": "exclusion", "quote": LANGUAGE, "meaning": "Other languages excluded"}]
     if amended:
         rows.append({"kind": "language", "quote": AMENDMENT, "meaning": "Japanese and English"})
     return rows
@@ -137,6 +138,7 @@ def test_validator_replays_substantive_agreement_and_rejects_bad_decisions(direc
         direct_vm.mock_llm(pattern, json.dumps(json.dumps({"items": rows})))
         return direct_vm.run_validator()
     assert replay([dict(items[1], reason="Requires a new language."), dict(items[0], reason="Two rounds available.")]) is True
+    assert replay([items[0], dict(items[1], clause_id="brief-a:1:c4")]) is True
     assert replay([items[0], dict(items[1], label="INCLUDED")]) is False
     assert replay([items[0]]) is False
     assert replay([items[0], dict(items[1], source_quote="Fabricated quotation")]) is False
