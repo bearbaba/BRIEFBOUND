@@ -22,6 +22,6 @@ async function schema(name:keyof typeof sources,methods:string[]){
  }catch(e){return {name,sha256,ok:false,error:String(e).slice(0,1500)};}
 }
 export async function GET(){
- const contracts=await Promise.all([schema("ScopeAnchor",["create_brief","approve_version","get_version"]),schema("ChangeDesk",["adjudicate","get_decision","get_anchor_address"])]);
+ const contracts=await Promise.all([schema("ScopeAnchor",["create_brief","approve_version","get_version","get_active_version","get_protocol_version","cancel_amendment"]),schema("ChangeDesk",["adjudicate","get_decision","get_anchor_address"])]);
  return NextResponse.json({ok:contracts.every(c=>c.ok),network:"Studionet",kind:"read-only schema load; no constructor or signed writes",contracts,checkedAt:new Date().toISOString()},{headers});
 }

@@ -27,14 +27,15 @@ export function normalizeSnapshot(hash:string,rawStatus:unknown,rawReceipt:unkno
   statusCode===7?"Finalized":statusCode===5?"Accepted":statusCode===8?"Canceled":statusCode===6?"Undetermined":"Unknown"
  );
  const consensusCode=code(receipt?.result),executionCode=code(receipt?.txExecutionResult);
- const consensus=label(receipt?.resultName)||(
+ const consensus=label(receipt?.resultName)||label(receipt?.result_name)||(
   consensusCode===1?"MajorityAgree":consensusCode===null?"":String(consensusCode));
  const execution=label(receipt?.txExecutionResultName)||(
   executionCode===1?"FinishedWithReturn":executionCode===null?"":String(executionCode));
  const finalized=statusCode===7||flat(statusName)==="finalized";
- const accepted=consensusCode===1||flat(consensus)==="majorityagree";
- const executed=executionCode===1||flat(execution)==="finishedwithreturn";
- const verified=finalized&&accepted&&executed;
+ const accepted=consensusCode!==null?consensusCode===1:flat(consensus)==="majorityagree";
+ const executed=executionCode!==null?executionCode===1:flat(execution)==="finishedwithreturn";
+ const consistent=(consensusCode===null||!label(receipt?.resultName??receipt?.result_name)||(consensusCode===1)===(flat(consensus)==="majorityagree"))&&(executionCode===null||!label(receipt?.txExecutionResultName)||(executionCode===1)===(flat(execution)==="finishedwithreturn"));
+ const verified=finalized&&accepted&&executed&&consistent;
  const canceled=statusCode===8||flat(statusName)==="canceled";
  const undetermined=statusCode===6||flat(statusName)==="undetermined";
  const receiptEvaluable=receipt!==null&&(consensusCode!==null||!!consensus)&&(executionCode!==null||!!execution);
