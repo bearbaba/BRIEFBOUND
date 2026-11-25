@@ -4,7 +4,7 @@
 
 ## Exactly two GenLayer Intelligent Contracts
 
-1. **contracts/ScopeAnchor.py** — A client proposes an original written brief. GenLayer extracts individually quoted clauses through LLM consensus with independent validator assessment. Client and freelancer must each approve to lock version 1. Amendments append to the source and require the same two signatures before version 2 becomes locked.
+1. **contracts/ScopeAnchor.py** — A client proposes an original written brief. The contract deterministically captures exact clause spans and the supported explicit revision cap; semantic AI evaluation happens in ChangeDesk. Client and freelancer must each approve to lock version 1. Amendments are complete replacement snapshots, not deltas, and require two fresh signatures. Previous versions remain immutable. A pending amendment can be cancelled without changing the active version.
 2. **contracts/ChangeDesk.py** — Accepts a natural-language change message and calls the deployed ScopeAnchor **directly** to read the specific locked version. GenLayer proposes separately classified tasks as INCLUDED, CHANGE_ORDER or NEEDS_CLARIFICATION, with source quotations and independent validator review. Each decision record stores the original version and is immutable. A revision round is consumed only after the other signer confirms. Separate typed counters prevent round-ID collisions; consumed rounds remain across amendments, and ambiguous or exhausted round limits fail closed. New rounds require the current locked version. Historical decisions remain readable.
 
 All source and verdict information is publicly readable on-chain. Source statements are the signatories' assertions, not proof of legal obligations or a substitute for a signed contract.
@@ -29,8 +29,8 @@ The deterministic preview illustrates **expected behavior**, not the result of a
 2. Set **NEXT_PUBLIC_SCOPE_ANCHOR_ADDRESS** and **NEXT_PUBLIC_CHANGE_DESK_ADDRESS** in Vercel. Public addresses only. Never enter any private key into an environment file.
 3. Select the **Live GenLayer** tab. Client wallet creates the brief; both signer wallets approve v1.
 4. A signer adjudicates v1 using a unique decision ID. Read the exact decision and its referenced version.
-5. A signer proposes the Japanese amendment. Both signers approve v2. Rerun the **identical original message** using a new decision ID and version 2.
-6. Check the public readbacks for both decision IDs, source quotations and version references. Check **FINALIZED and successful execution**, not transaction submission alone.
+5. A signer proposes a complete replacement scope including the original retained terms and Japanese. Both signers approve v2. Rerun the **identical original message** using a new decision ID and version 2.
+6. Check the public readbacks for both decision IDs, source quotations and version references. Check **FINALIZED, MAJORITY_AGREE and successful execution**, not transaction submission alone.
 7. Optional: propose a round, then sign its confirmation with the other party. Unilateral proposal does not consume a round.
 
 ## Local development
