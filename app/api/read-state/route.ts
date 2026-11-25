@@ -3,10 +3,10 @@ import {createClient} from "genlayer-js";
 import {studionet} from "genlayer-js/chains";
 export const dynamic="force-dynamic";
 const headers={"Cache-Control":"no-store, max-age=0"};
-const methods={get_decision:"change",get_round:"change",get_remaining_rounds:"change",get_version:"scope",get_active_version:"scope"} as const;
+const methods={get_decision:"change",get_round:"change",get_remaining_rounds:"change",get_version:"scope",get_active_version:"scope",get_latest_version:"scope"} as const;
 export async function GET(req:NextRequest){
  const method=req.nextUrl.searchParams.get("method")||"",id=req.nextUrl.searchParams.get("id")||"",v=Number(req.nextUrl.searchParams.get("version"));
- if(!Object.prototype.hasOwnProperty.call(methods,method)||!id||id.length>128)return NextResponse.json({error:"Unsupported read or missing ID."},{status:400,headers});
+ if(!Object.prototype.hasOwnProperty.call(methods,method)||!id||id.length>64||id.trim()!==id||id.includes(":"))return NextResponse.json({error:"Unsupported read or missing ID."},{status:400,headers});
  const key=method as keyof typeof methods;
  const versioned=key==="get_version"||key==="get_remaining_rounds";
  if(versioned&&(!Number.isInteger(v)||v<1||v>100000))return NextResponse.json({error:"Invalid version."},{status:400,headers});

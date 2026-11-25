@@ -2,6 +2,14 @@
 
 **One-liner:** BRIEFBOUND links each design revision to the signed-off brief so clients and freelancers can see what is included, extra, or still unclear.
 
+## Community beta — use the live application
+
+Open [BRIEFBOUND](https://briefbound-rho.vercel.app/). The Home page offers a verified public demo (no wallet), a local example, and a live workspace. A client can create a new brief using a distinct freelancer wallet address, then use **Copy workspace link** to invite the other signer. The recipient opens the link and clicks **Load / refresh brief** to recover the latest scope and both public wallet addresses from Studionet. Each signer connects their own wallet, reviews the scope, and approves independently. Use a new decision or round ID for each new record; share the workspace link again to communicate those IDs. Read-only verification does not require a wallet.
+
+**Public testnet only:** use fictional or non-sensitive scope and request data. All contract records are publicly readable; no keys are collected. Testnet gas is required for writes. The browser preflight helps prevent incorrect or duplicate actions, but contract validation and finalized consensus remain authoritative.
+
+[Production walkthrough](https://youtu.be/YIZ8P8alh-c) · Existing case: `brief-mwvm2cli`, decision v1 `decision-mwvm2cli-v1`, decision v2 `brief-mwvm2cli-decision-v2`, round `round-mwvm2cli`.
+
 ## Exactly two GenLayer Intelligent Contracts
 
 1. **contracts/ScopeAnchor.py** — A client proposes an original written brief. The contract deterministically captures exact clause spans and the supported explicit revision cap; semantic AI evaluation happens in ChangeDesk. Client and freelancer must each approve to lock version 1. Amendments are complete replacement snapshots, not deltas, and require two fresh signatures. Previous versions remain immutable. A pending amendment can be cancelled without changing the active version.
@@ -11,7 +19,7 @@ All source and verdict information is publicly readable on-chain. Source stateme
 
 ## Reviewer case (3-minute walkthrough)
 
-In the **Reviewer lab** tab:
+In the **Try example** tab:
 
 1. Read the default brief: desktop + mobile landing page, two layout rounds, English-only handoff.
 2. Read the default message: "Please tighten the spacing on mobile and add a Japanese version."
@@ -27,7 +35,7 @@ The deterministic preview illustrates **expected behavior**, not the result of a
 
 1. Deploy ScopeAnchor (no constructor arguments). Then deploy ChangeDesk passing the actual ScopeAnchor address as constructor argument.
 2. Set **NEXT_PUBLIC_SCOPE_ANCHOR_ADDRESS** and **NEXT_PUBLIC_CHANGE_DESK_ADDRESS** in Vercel. Public addresses only. Never enter any private key into an environment file.
-3. Select the **Live GenLayer** tab. Client wallet creates the brief; both signer wallets approve v1.
+3. Select **Sign & adjudicate**. Client wallet creates the brief; both signer wallets approve v1.
 4. A signer adjudicates v1 using a unique decision ID. Read the exact decision and its referenced version.
 5. A signer proposes a complete replacement scope including the original retained terms and Japanese. Both signers approve v2. Rerun the **identical original message** using a new decision ID and version 2.
 6. Check the public readbacks for both decision IDs, source quotations and version references. Check **FINALIZED, MAJORITY_AGREE and successful execution**, not transaction submission alone.
