@@ -59,6 +59,9 @@ def test_replacement_requires_fresh_signatures_and_preserves_history(direct_vm, 
     lock(direct_vm, a, direct_alice, direct_bob, 2)
     assert a.get_active_version("brief-a") == 2
     assert a.get_version("brief-a", 1) == old
+    for version in (1, 2):
+        actual = read(a, version)
+        assert actual == snapshot(version, actual["client"], actual["freelancer"])
 
 def test_cancel_draft_does_not_reuse_version(direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie):
     a = setup_anchor(direct_vm, direct_deploy, direct_alice, direct_bob)
@@ -83,21 +86,43 @@ def test_round_caps_fail_closed(direct_vm, direct_deploy, direct_alice, direct_b
     a.propose_amendment("brief-a", "Deliver mobile layout. Two rounds of layout revisions are not included.")
     assert read(a, 2)["round_limit"] == -1
 
+def snapshot(version, client, freelancer):
+    source = SOURCE if version == 1 else V2
+    parts = source.split(". ")
+    parts = [p + "." if not p.endswith(".") else p for p in parts]
+    return {
+        "brief_id": "brief-a", "version": version, "source": source,
+        "amendment": "" if version == 1 else source,
+        "previous_version": version - 1, "client": client, "freelancer": freelancer,
+        "round_limit": 2, "locked": True, "cancelled": False,
+        "client_approved": True, "freelancer_approved": True,
+        "clauses": [
+            {"clause_id": f"brief-a:{version}:c{i+1}", "kind": kind,
+             "quote": p, "meaning": p, "introduced_in": version}
+            for i, (kind, p) in enumerate(zip(("layout", "rounds", "language"), parts))
+        ]
+    }
+
 def desk_fixture(vm, deploy, alice, bob, monkeypatch):
-    anchor = setup_anchor(vm, deploy, alice, bob)
-    lock(vm, anchor, alice, bob, 1)
-    anchor.propose_amendment("brief-a", V2)
-    lock(vm, anchor, alice, bob, 2)
-    records = {v: read(anchor, v) for v in (1, 2)}
+    # Direct mode can load only one contract class per test. Mock the external
+    # view boundary, not ChangeDesk's validation/authorization methods.
     desk = deploy("contracts/ChangeDesk.py", "0x" + "9" * 40)
-    # Use actual ScopeAnchor records, stub only external VM view boundary.
-    monkeypatch.setattr(type(desk._instance), "_load", lambda self, brief_id, version: records[version])
+    import genlayer as gl
+    from genlayer.types import Address
+    records = {v: snapshot(v, Address(alice).as_hex.lower(), Address(bob).as_hex.lower()) for v in (1, 2)}
     current = [1]
-    def require_current(self, brief_id, version):
-        import genlayer as gl
-        if version != current[0]:
-            raise gl.vm.UserError("Revision rounds require the current locked version")
-    monkeypatch.setattr(type(desk._instance), "_require_current_version", require_current)
+    class ExternalView:
+        def view(self):
+            return self
+        def get_protocol_version(self):
+            return "briefbound-snapshot-v3"
+        def get_version(self, brief_id, version):
+            if brief_id != "brief-a" or version not in records:
+                return ""
+            return json.dumps(records[version])
+        def get_active_version(self, brief_id):
+            return current[0] if brief_id == "brief-a" else 0
+    monkeypatch.setattr(gl.contract, "get_at", lambda address: ExternalView())
     return desk, current
 
 def mock(vm, items):
@@ -178,3 +203,8 @@ def test_bad_provider_json_and_forged_evidence(direct_vm, direct_deploy, direct_
     stored = json.loads(desk.get_decision("safe"))["items"][0]
     assert stored["source_quote"] == "Deliver one landing page in desktop + mobile layouts."
     assert stored["reason"] != "invented"
+
+def test_view_rejects_unknown_brief(direct_vm, direct_deploy, direct_alice, direct_bob, monkeypatch):
+    desk, _ = desk_fixture(direct_vm, direct_deploy, direct_alice, direct_bob, monkeypatch)
+    with direct_vm.expect_revert("Unknown anchor version"):
+        desk.get_remaining_rounds("unknown", 1)
